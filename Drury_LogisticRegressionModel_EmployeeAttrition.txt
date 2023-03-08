@@ -1,0 +1,91 @@
+---
+title: "Employee Attrition Logistic Regression Model"
+output:
+---
+The code base is separated into 3 modular sections. One for importing and cleaning, Exploring, and Modeling and Results.
+
+Each of these Modules can be further divided into individual modules that will work on their own if you wish to access one exploring aspect etc. 
+
+The modeling module is broken into two separate modules. One for setting the variables being used in the model and assigning testing and training sets of data. The other is the modeling and results itself. This is done so the model can be run with all the data if required, the variables can be updated before running, etc.
+
+
+I: Importing and Cleaning the Data
+```{r}
+# importing the data set
+# to add new data just update file path
+data <- read.csv("EmpAttrTrain2.csv")
+
+# checking for missing values
+sapply(data, function(x) sum(is.na(x)))
+
+# no missing values or issues with this data set. 
+# If there were the code to address it would go here
+```
+
+
+II: Exploring the Data
+```{r}
+# looking at the first few rows of the data
+head(data, 6)
+
+# checking the length of unique values in the data
+sapply(data, function(x) length(unique(x)))
+
+# summary of the data set
+summary(data)
+
+# skimming the data set
+# This is an additional summary that has other useful attributes 
+# It is also a second look for missing or inconsistent data as a double check
+library(skimr)
+skim(data)
+
+# create full report on the data set
+library(DataExplorer)
+# Report output as HTML file (Example Included)
+DataExplorer::create_report(data)
+```
+
+
+III: Logistic Regression Model
+Sub-Module I: Creating relevant variables subset and Testing and Training Data Sets
+```{r}
+# selecting variables for our model
+selected_variables <- subset(data, select = c(1,2,3,4,5,6,7,11,12,13,14,15,16,17,18,21,23,24,26,29,30,31,32,33,34))
+# checking that the correct variables are in the updated data set
+head(selected_variables, 6)
+
+# setting training and testing sets of the selected data
+train_data <- selected_variables[1:1000,]
+test_data <- selected_variables[1001:1270,]
+```
+Sub-module II: Creating the model and assessing the results
+```{r}
+# the model itself
+# to run any other loaded data that has a different variable name
+# simply change the data input
+model <- glm(Attrition ~.,family=binomial(link='logit'),data=train_data)
+
+# summary of model
+summary(model)
+
+# analyzing the table of deviance for the model results
+anova(model, test="Chisq")
+
+# assessing  McFadden R^2 index
+library(pscl)
+pR2(model)
+
+# Creating ROC curve and Displaying the AUC value
+library(ROCR)
+p <- predict(model, type="response")
+pr <- prediction(p, train_data$Attrition)
+prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+plot(prf)
+
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+print(auc)
+```
+
+
